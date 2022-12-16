@@ -1,0 +1,11 @@
+## Interface: 20502
+## X-Min-Interface-Classic: 11400
+## X-Min-Interface-BCC: 20502
+## Title: MangosBot
+## Author: ike3
+## Notes: MangosBot UI
+## DefaultState: Enabled
+## LoadOnDemand: 0
+##SavedVariables: frameopts
+Mangosbot.lua
+Mangosbot.xml

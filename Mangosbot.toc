@@ -1,9 +1,0 @@
-## Interface: 11200
-## Title: MangosBot
-## Author: ike3
-## Notes: MangosBot UI
-## DefaultState: Enabled
-## LoadOnDemand: 0
-##SavedVariables: frameopts
-Mangosbot.lua
-Mangosbot.xml
