@@ -1008,6 +1008,66 @@ function CreateSelectedBotPanel()
             index = 4
         }
     })
+	
+    y = y + 25
+    CreateToolBar(frame, -y, "rpg", {
+        ["rpg"] = {
+            icon = "whisper",
+            command = {[0] = "nc ~rpg,?"},
+            strategy = "rpg",
+            tooltip = "Rpg with nearby npcs",
+            index = 0
+        },
+        ["rpg quest"] = {
+            icon = "stats",
+            command = {[0] = "nc ~rpg quest,?"},
+            strategy = "rpg quest",
+            tooltip = "Talk to quest npc's",
+            index = 1
+        },
+        ["rpg vendor"] = {
+            icon = "count",
+            command = {[0] = "nc ~rpg vendor,?"},
+            strategy = "rpg vendor",
+            tooltip = "Talk to vendors",
+            index = 2
+        },
+        ["rpg explore"] = {
+            icon = "follow_master",
+            command = {[0] = "nc ~rpg explore,?"},
+            strategy = "rpg explore",
+            tooltip = "Talk to inns, flightmasters",
+            index = 3
+        },
+        ["rpg maintenance"] = {
+            icon = "ll_disenchant",
+            command = {[0] = "nc ~rpg maintenance,?"},
+            strategy = "rpg maintenance",
+            tooltip = "Talk to armorers, trainers",
+            index = 4
+        },
+        ["rpg player"] = {
+            icon = "ll_all",
+            command = {[0] = "nc ~rpg player,?"},
+            strategy = "rpg player",
+            tooltip = "Duel/trade players",
+            index = 5
+        },
+        ["rpg craft"] = {
+            icon = "spells",
+            command = {[0] = "nc ~rpg craft,?"},
+            strategy = "rpg craft",
+            tooltip = "Craft items, casts spells",
+            index = 6
+        },
+        ["travel"] = {
+            icon = "flee",
+            command = {[0] = "nc ~travel,?"},
+            strategy = "travel",
+            tooltip = "Travel to distant destinations",
+            index = 7
+        }			
+    })	
 
     y = y + 25
     CreateFormationToolBar(frame, y, "formation", false, 5, 5, true)
