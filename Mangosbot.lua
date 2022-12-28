@@ -1700,6 +1700,7 @@ SelectedBotPanel = CreateSelectedBotPanel();
 BotRoster = CreateBotRoster();
 BotDebugPanel = CreateBotDebugPanel();
 CurrentBot = nil
+LastBot = nil
 BotDebugFilter = ""
 
 local function fmod(a,b)
@@ -1722,8 +1723,12 @@ Mangosbot_EventFrame:SetScript("OnEvent", function(self)
             SelectedBotPanel:Hide()
         else
             if (CurrentBot ~= name) then CurrentBot = nil end
-            QuerySelectedBot(name)
+			if (LastBot ~= name
+            	QuerySelectedBot(name)
         end
+    end
+
+		LastBot = name
     end
 
     if (event == "CHAT_MSG_SYSTEM") then
