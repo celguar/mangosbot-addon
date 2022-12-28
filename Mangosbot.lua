@@ -1718,13 +1718,16 @@ Mangosbot_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2, arg3
     if (event == "PLAYER_TARGET_CHANGED") then
         local name = GetUnitName("target")
         local self = GetUnitName("player")
-        if (CurrentBot == nil and (name == nil or not UnitExists("target") or UnitIsEnemy("target", "player") or not UnitIsPlayer("target") or name == self)) then
+        if (CurrentBot == nil and (name == nil or not UnitExists("target") or UnitIsEnemy("target", "player") or not UnitIsPlayer("target"))) then
             SelectedBotPanel:Hide()
         else
             if (CurrentBot ~= name) then CurrentBot = nil end
-            if (UnitPlayerOrPetInParty("target") or UnitPlayerOrPetInRaid("target")) then
-                QuerySelectedBot(name) end
+            if (LastBot ~= name and (UnitPlayerOrPetInParty("target") or UnitPlayerOrPetInRaid("target"))) then
+                QuerySelectedBot(name) 
+				end
         end
+		
+		LastBot = name
     end
 
     if (event == "CHAT_MSG_SYSTEM") then
