@@ -781,7 +781,7 @@ function CreateGenericCombatToolBar(frame, y, name, group, x, spacing, register)
     return CreateToolBar(frame, -y, name, {
         ["potions"] = {
             icon = "potions",
-            command = {[0] = "co ~potions,?"},
+            command = {[0] = "react ~potions,?"},
             strategy = "potions",
             tooltip = "Use health and mana potions",
             index = 0,
@@ -862,7 +862,7 @@ function StartChat()
     editBox:SetText("/w " .. name .. " ")
 end
 
-function CreateSelectedBotPanel()
+function CreateSelectedBotPanel()	
     local frame = CreateFrame("Frame", "SelectedBotPanel", UIParent, BackdropTemplateMixin and "BackdropTemplate")
     frame:Hide()
     frame:SetWidth(170)
@@ -882,7 +882,7 @@ function CreateSelectedBotPanel()
     frame:RegisterForDrag("LeftButton")
 
     frame.header = CreateFrame("Frame", "SelectedBotPanelHeader", frame, BackdropTemplateMixin and "BackdropTemplate")
-    frame.header:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+    frame.header:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -16)
     frame.header:SetWidth(frame:GetWidth())
     frame.header:SetHeight(22)
     frame.header:SetBackdropColor(0.5,0.1,0.7,1)
@@ -1092,6 +1092,20 @@ function CreateSelectedBotPanel()
             strategy = "threat",
             tooltip = "Keep threat level low",
             index = 4
+        },
+		["wait_for_attack"] = {
+            icon = "wait_for_attack",
+            command = {[0] = "co ~wait for attack,?"},
+            strategy = "wait for attack",
+            tooltip = "Wait X seconds before attacking. To change the amount of seconds use 'wait for attack time X'",
+            index = 5
+        },
+		["pull"] = {
+            icon = "ranged",
+            command = {[0] = "co ~pull,?"},
+            strategy = "pull",
+            tooltip = "Set this bot to pull using the 'pull command'. Recommended to only have one bot with pull enabled.",
+            index = 6
         }
     })
 
@@ -1111,28 +1125,28 @@ function CreateSelectedBotPanel()
     CreateToolBar(frame, -y, "CLASS_DRUID", {
         ["bear"] = {
             icon = "bear",
-            command = {[0] = "co +bear,?"},
+            command = {[0] = "co +bear,+pull,?"},
             strategy = "bear",
             tooltip = "Use bear form",
             index = 0
         },
         ["cat"] = {
             icon = "cat",
-            command = {[0] = "co +cat,?"},
+            command = {[0] = "co +cat,-pull,?"},
             strategy = "cat",
             tooltip = "Use cat form",
             index = 1
         },
         ["caster"] = {
             icon = "caster",
-            command = {[0] = "co +caster,?"},
+            command = {[0] = "co +caster,-pull,?"},
             strategy = "caster",
             tooltip = "Use caster form",
             index = 2
         },
         ["heal"] = {
             icon = "heal",
-            command = {[0] = "co +heal,?"},
+            command = {[0] = "co +heal,-pull,?"},
             strategy = "heal",
             tooltip = "Healer mode",
             index = 3
@@ -1456,21 +1470,21 @@ function CreateSelectedBotPanel()
     CreateToolBar(frame, -y, "CLASS_WARRIOR", {
         ["arms"] = {
             icon = "dps",
-            command = {[0] = "co +arms,+dps assist,?", [1] = "nc +dps assist,?"},
+            command = {[0] = "co +arms,+dps assist,-pull,?", [1] = "nc +dps assist,?"},
             strategy = "arms",
             tooltip = "Arms rotation",
             index = 0
         },
         ["fury"] = {
             icon = "grind",
-            command = {[0] = "co +fury,+dps assist,?", [1] = "nc +dps assist,?"},
+            command = {[0] = "co +fury,+dps assist,-pull,?", [1] = "nc +dps assist,?"},
             strategy = "fury",
             tooltip = "Fury rotation",
             index = 1
         },
         ["tank"] = {
             icon = "tank",
-            command = {[0] = "co +tank,+tank assist,?", [1] = "nc +tank assist,?"},
+            command = {[0] = "co +tank,+tank assist,+pull,?", [1] = "nc +tank assist,?"},
             strategy = "tank",
             tooltip = "Tank rotation",
             index = 2
@@ -1685,6 +1699,7 @@ SelectedBotPanel = CreateSelectedBotPanel();
 BotRoster = CreateBotRoster();
 BotDebugPanel = CreateBotDebugPanel();
 CurrentBot = nil
+LastBot = nil
 BotDebugFilter = ""
 
 local function fmod(a,b)
@@ -1692,11 +1707,11 @@ local function fmod(a,b)
 end
 
 function QueryBotParty()
-    wait(0.1, function() SendBotCommand("#a ll ?"..CommandSeparator.."#a formation ?"..CommandSeparator.."#a stance ?"..CommandSeparator.."#a co ?"..CommandSeparator.."#a nc ?"..CommandSeparator.."#a save mana ?", "PARTY") end)
+    wait(0.1, function() SendBotCommand("#a ll ?"..CommandSeparator.."#a formation ?"..CommandSeparator.."#a stance ?"..CommandSeparator.."#a co ?"..CommandSeparator.."#a nc ?"..CommandSeparator.."#a save mana ?"..CommandSeparator.."#a react ?", "PARTY") end)
 end
 
 function QuerySelectedBot(name)
-    wait(0.1, function() SendBotCommand("#a formation ?"..CommandSeparator.."#a stance ?"..CommandSeparator.."#a ll ?"..CommandSeparator.."#a co ?"..CommandSeparator.."#a nc ?"..CommandSeparator.."#a save mana ?"..CommandSeparator.."#a rti ?", "WHISPER", nil, name) end)
+    wait(0.1, function() SendBotCommand("#a formation ?"..CommandSeparator.."#a stance ?"..CommandSeparator.."#a ll ?"..CommandSeparator.."#a co ?"..CommandSeparator.."#a nc ?"..CommandSeparator.."#a save mana ?"..CommandSeparator.."#a rti ?"..CommandSeparator.."#a react ?", "WHISPER", nil, name) end)
 end
 
 Mangosbot_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2, arg3, arg4)
@@ -2056,6 +2071,12 @@ Mangosbot_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2, arg3
                                 break
                             end
                         end
+						for key,strategy in pairs(bot["strategy"]["react"]) do
+                            if (strategy == button["strategy"]) then
+                                toggle = true
+                                break
+                            end
+                        end
                     end
                     if (button["formation"] ~= nil and bot["formation"] ~= nil and string.find(bot["formation"], button["formation"]) ~= nil) then
                         toggle = true
@@ -2102,6 +2123,12 @@ function UpdateGroupToolBar()
                         end
                     end
                     for key,strategy in pairs(bot["strategy"]["co"]) do
+                        if (strategy == button["strategy"]) then
+                            toggle = true
+                            break
+                        end
+                    end
+					for key,strategy in pairs(bot["strategy"]["react"]) do
                         if (strategy == button["strategy"]) then
                             toggle = true
                             break
@@ -2176,23 +2203,40 @@ function OnWhisper(message, sender)
     if (botTable[sender] == nil) then
         botTable[sender] = {}
     end
-
-    local bot = botTable[sender]
-    if (string.find(message, 'Strategies: ') == 1) then
-        local list = {}
-        local type = "co"
-        local role = "dps"
-        local text = string.sub(message, 13)
+	
+    local type = "co"
+	local validStrategy = false
+	local bot = botTable[sender]
+	local trm = 19
+	if(string.find(message, 'Combat Strategies: ') == 1) then
+		type = "co"
+		validStrategy = true
+		trm = 19
+	elseif(string.find(message, 'Non Combat Strategies: ') == 1) then
+		type = "nc"
+		validStrategy = true
+		trm = 23
+	elseif(string.find(message, 'Reaction Strategies: ') == 1) then
+		type = "react"
+		validStrategy = true
+		trm = 21
+	end
+	
+	bot["role"] = "dps"
+    
+    if (validStrategy) then
+		local list = {}
+		local role = "dps"
+        local text = string.sub(message, trm)
         local splitted = splitString2(text, ", ")
         for i = 1, tablelength(splitted) do
             local name = trim2(splitted[i])
             table.insert(list, name)
-            if (name == "nc") then type = 'nc' end
             if (name == "heal") then role = "heal" end
             if (name == "tank" or name == "bear") then role = "tank" end
         end
         if (bot['strategy'] == nil) then
-            bot['strategy'] = {nc = {}, co = {}}
+            bot['strategy'] = {nc = {}, co = {}, react = {}}
         end
         if (type == "co") then
             bot["role"] = role
