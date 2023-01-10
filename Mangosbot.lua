@@ -1783,10 +1783,10 @@ Mangosbot_EventFrame:SetScript("OnEvent", function(self)
             SelectedBotPanel:Hide()
         else
             if (CurrentBot ~= name) then CurrentBot = nil end
-			if (LastBot ~= name
+			if (LastBot ~= name) then
             	QuerySelectedBot(name)
+			end
         end
-    end
 
 		LastBot = name
     end
