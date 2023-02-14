@@ -3,6 +3,8 @@ Mangosbot_EventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
 Mangosbot_EventFrame:RegisterEvent("CHAT_MSG_WHISPER")
 Mangosbot_EventFrame:RegisterEvent("CHAT_MSG_ADDON")
 Mangosbot_EventFrame:RegisterEvent("CHAT_MSG_SYSTEM")
+Mangosbot_EventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+
 Mangosbot_EventFrame:Hide()
 
 local ToolBars = {}
@@ -10,11 +12,10 @@ local GroupToolBars = {}
 local CommandSeparator = "\\\\"
 function SendBotCommand(text, chat, lang, channel)
     if (chat == "PARTY" and partySize() == 0) then return end
-    if (chat == "PARTY") then 
-        if (GetNumGroupMembers() > 0) then chat = "RAID" end
-        C_ChatInfo.SendAddonMessage("", text, chat, channel)
+	if (chat == "SAY") then
+		SendChatMessage(text, chat, lang, channel) 	
     else
-        SendChatMessage(text, chat, lang, channel)
+        C_ChatInfo.SendAddonMessage("BOT", text, chat, channel)
     end
 end
 function SendBotAddonCommand(text, chat, lang, channel)
@@ -22,6 +23,7 @@ function SendBotAddonCommand(text, chat, lang, channel)
 end
 
 function CreateToolBar(frame, y, name, buttons, x, spacing, register)
+	local ok = C_ChatInfo.RegisterAddonMessagePrefix("BOT")
     if (x == nil) then x = 5 end
     if (spacing == nil) then spacing = 5 end
     if (register == nil) then register = true end
@@ -138,7 +140,7 @@ function ToolBarButtonOnClick(btn, visual)
         combined = string.sub(combined, 1, string.len(combined) - 2)
         wait(0, function(combined) SendBotCommand(combined, "PARTY") end, combined)
         if (btn["tooltip"] ~= nil) then
-            wait(delay + 1, function(command) SendBotCommand(command, "PARTY") end, btn["tooltip"])
+            wait(delay + 1, function(command) SendBotCommand("#a " .. command, "PARTY") end, btn["tooltip"])
         end
     else
         local bot = GetUnitName("target")
@@ -383,6 +385,13 @@ function CreateBotRoster()
             tooltip = "Remove all bots from group",
             strategy = "",
             index = 3
+        },
+        ["summon_all"] = {
+            icon = "summon",
+            command = {[0] = ""},
+            tooltip = "Summon all bots at meeting stone",
+            strategy = "",
+            index = 4
         }
     }, 5, 0, false)
     frame.toolbar["quickbar"]:SetBackdropBorderColor(0,0,0,0.0)
@@ -547,7 +556,7 @@ function CreateMovementToolBar(frame, y, name, group, x, spacing, register)
     local tb = {
         ["follow_master"] = {
             icon = "follow_master",
-            command = {[0] = "#a follow", [1] = "#a nc ?", [2] = "#a co ?"},
+            command = {[0] = "#a follow ?"},
             strategy = "follow",
             tooltip = "Follow me",
             index = 0,
@@ -556,37 +565,49 @@ function CreateMovementToolBar(frame, y, name, group, x, spacing, register)
         },
         ["stay"] = {
             icon = "stay",
-            command = {[0] = "#a stay", [1] = "#a nc ?", [2] = "#a co ?"},
+            command = {[0] = "#a stay ?"},
             strategy = "stay",
             tooltip = "Stay in place",
             index = 1,
             group = group,
             emote = "wait"
+        },
+        ["free"] = {
+            icon = "free",
+            command = {[0] = "#a free ?"},
+            strategy = "free",
+            tooltip = "Move around freely",
+            index = 2,
+            group = group
         }
     }
-    local index = 2
+    local index = 3
     if (not group) then
         tb["runaway"] = {
             icon = "flee",
-            command = {[0] = "#a co ~runaway,?"},
+            command = {[0] = "#a runaway ?"},
             strategy = "runaway",
             tooltip = "Run away from mobs",
             index = index,
             group = group
         }
         index = index + 1
+    end
+
         tb["guard"] = {
             icon = "guard",
-            command = {[0] = "#a nc +guard,?"},
+        command = {[0] = "#a guard ?"},
             strategy = "guard",
             tooltip = "Guard pre-set place",
             index = index,
             group = group
         }
         index = index + 1
+		
+    if (not group) then		
         tb["grind"] = {
             icon = "grind",
-            command = {[0] = "#a nc ~grind,?"},
+            command = {[0] = "#a nc ~grind, ?"},
             strategy = "grind",
             tooltip = "Aggresive mode (grinding)",
             index = index,
@@ -607,7 +628,7 @@ function CreateMovementToolBar(frame, y, name, group, x, spacing, register)
 
     tb["flee_passive"] = {
         icon = "flee_passive",
-        command = {[0] = "#a flee", [1] = "#a nc ?", [2] = "#a co ?"},
+        command = {[0] = "#a flee ?"},
         strategy = "",
         tooltip = "Flee",
         index = index,
@@ -628,27 +649,18 @@ function CreateMovementToolBar(frame, y, name, group, x, spacing, register)
         index = index + 1
         tb["attack"] = {
             icon = "dps",
-            command = {[0] = "co -passive,+dps assist", [1] = "nc -passive,+dps assist", [2] = "@tank co -dps assist,+tank assist", [3] = "@tank nc -dps assist,+tank assist", [4] = "queue attack"},
+            command = {[0] = "#a co -passive,+dps assist", [1] = "#a nc -passive,+dps assist", [2] = "#a @tank co -dps assist,+tank assist", [3] = "#a @tank nc -dps assist,+tank assist", [4] = "#a queue attack"},
             strategy = "",
             tooltip = "Attack my target",
             index = index,
             group = group
         }
         index = index + 1
-        tb["pull"] = {
+        tb["tank attack"] = {
             icon = "tank_assist",
-            command = {[0] = "@dps co -dps assist", [1] = "@dps nc -dps assist", [2] = "@tank attack"},
+            command = {[0] = "#a @dps co -dps assist", [1] = "#a @dps nc -dps assist", [2] = "#a @tank attack"},
             strategy = "",
-            tooltip = "Pull",
-            index = index,
-            group = group
-        }
-        index = index + 1
-        tb["summon"] = {
-            icon = "summon",
-            command = {[0] = "summon"},
-            strategy = "",
-            tooltip = "Summon at meeting stone",
+            tooltip = "tank attack",
             index = index,
             group = group
         }
@@ -744,7 +756,7 @@ function CreateGenericNonCombatToolBar(frame, y, name, group, x, spacing, regist
     return CreateToolBar(frame, -y, name, {
         ["food"] = {
             icon = "food",
-            command = {[0] = "nc ~food,?"},
+            command = {[0] = "#a nc ~food,?"},
             strategy = "food",
             tooltip = "Use food and drinks",
             index = 0,
@@ -752,7 +764,7 @@ function CreateGenericNonCombatToolBar(frame, y, name, group, x, spacing, regist
         },
         ["buff"] = {
             icon = "bdps",
-            command = {[0] = "nc ~buff,?"},
+            command = {[0] = "#a nc ~buff,?"},
             strategy = "buff",
             tooltip = "Buff party members",
             index = 1,
@@ -760,7 +772,7 @@ function CreateGenericNonCombatToolBar(frame, y, name, group, x, spacing, regist
         },
         ["loot"] = {
             icon = "loot",
-            command = {[0] = "nc ~loot,?"},
+            command = {[0] = "#a nc ~loot,?"},
             strategy = "loot",
             tooltip = "Enable looting",
             index = 2,
@@ -768,7 +780,7 @@ function CreateGenericNonCombatToolBar(frame, y, name, group, x, spacing, regist
         },
         ["gather"] = {
             icon = "gather",
-            command = {[0] = "nc ~gather,?"},
+            command = {[0] = "#a nc ~gather,?"},
             strategy = "gather",
             tooltip = "Gather herbs, ore, etc.",
             index = 3,
@@ -781,7 +793,7 @@ function CreateGenericCombatToolBar(frame, y, name, group, x, spacing, register)
     return CreateToolBar(frame, -y, name, {
         ["potions"] = {
             icon = "potions",
-            command = {[0] = "react ~potions,?"},
+            command = {[0] = "#a react ~potions,?"},
             strategy = "potions",
             tooltip = "Use health and mana potions",
             index = 0,
@@ -789,7 +801,7 @@ function CreateGenericCombatToolBar(frame, y, name, group, x, spacing, register)
         },
         ["cast_time"] = {
             icon = "cast_time",
-            command = {[0] = "co ~cast time,?"},
+            command = {[0] = "#a co ~cast time,?"},
             strategy = "cast time",
             tooltip = "Do not cast long spells on almost dead targets",
             index = 1,
@@ -797,7 +809,7 @@ function CreateGenericCombatToolBar(frame, y, name, group, x, spacing, register)
         },
         ["mark_rti"] = {
             icon = "mark_rti",
-            command = {[0] = "co ~mark rti,?"},
+            command = {[0] = "#a co ~mark rti,?"},
             strategy = "mark rti",
             tooltip = "Mark current target with raid icon",
             index = 2,
@@ -805,7 +817,7 @@ function CreateGenericCombatToolBar(frame, y, name, group, x, spacing, register)
         },
         ["ads"] = {
             icon = "ads",
-            command = {[0] = "co ~ads,?", [1] = "nc ~ads,?"},
+            command = {[0] = "#a co ~ads,?", [1] = "#a nc ~ads,?"},
             strategy = "ads",
             tooltip = "Flee if ads might be pulled",
             index = 3,
@@ -813,7 +825,7 @@ function CreateGenericCombatToolBar(frame, y, name, group, x, spacing, register)
         },
         ["boost"] = {
             icon = "boost",
-            command = {[0] = "co ~boost,?"},
+            command = {[0] = "#a co ~boost,?"},
             strategy = "boost",
             tooltip = "Boost dps by using cooldowns",
             index = 4,
@@ -821,7 +833,7 @@ function CreateGenericCombatToolBar(frame, y, name, group, x, spacing, register)
         },
         ["conserve_mana"] = {
             icon = "conserve_mana",
-            command = {[0] = "co ~conserve mana,?"},
+            command = {[0] = "#a co ~conserve mana,?"},
             strategy = "conserve mana",
             tooltip = "Reduce mana usage at cost of DPS",
             index = 5,
@@ -829,7 +841,7 @@ function CreateGenericCombatToolBar(frame, y, name, group, x, spacing, register)
         },
         ["cc"] = {
             icon = "cc",
-            command = {[0] = "co ~cc,?"},
+            command = {[0] = "#a co ~cc,?"},
             strategy = "cc",
             tooltip = "Use crowd control abilities",
             index = 6,
@@ -955,14 +967,14 @@ function CreateSelectedBotPanel()
         },
         ["revive"] = {
             icon = "revive",
-            command = {[0] = "revive"},
+            command = {[0] = "revive", [1] = "d revive from corpse"},
             strategy = "",
             tooltip = "Revive at Spirit Healer",
             index = 5
         },
         ["talk"] = {
             icon = "talk",
-            command = {[0] = "talk", [0] = "accept *"},
+            command = {[0] = "talk", [1] = "accept *"},
             strategy = "",
             tooltip = "Talk",
             index = 6
@@ -999,71 +1011,85 @@ function CreateSelectedBotPanel()
             tooltip = "Show tradeskill",
             index = 3
         },
+        ["equip"] = {
+            icon = "equip",
+            command = {[0] = "e ?"},
+            strategy = "",
+            tooltip = "Show equipment",
+            index = 4
+        },		
         ["mail"] = {
             icon = "mail",
             command = {[0] = "mail ?"},
             strategy = "",
             tooltip = "Show mail",
             index = 4
+        },
+        ["help"] = {
+            icon = "help",
+            command = {[0] = "help"},
+            strategy = "",
+            tooltip = "Help",
+            index = 5
         }
     })
 
     y = y + 25
     CreateToolBar(frame, -y, "rpg", {
         ["rpg"] = {
-            icon = "whisper",
-            command = {[0] = "nc ~rpg,?"},
+            icon = "rpg",
+            command = {[0] = "#a nc ~rpg,?"},
             strategy = "rpg",
             tooltip = "Rpg with nearby npcs",
             index = 0
         },
         ["rpg quest"] = {
-            icon = "stats",
-            command = {[0] = "nc ~rpg quest,?"},
+            icon = "rpg_quest",
+            command = {[0] = "#a nc ~rpg quest,?"},
             strategy = "rpg quest",
             tooltip = "Talk to quest npc's",
             index = 1
         },
         ["rpg vendor"] = {
-            icon = "count",
-            command = {[0] = "nc ~rpg vendor,?"},
+            icon = "rpg_vendor",
+            command = {[0] = "#a nc ~rpg vendor,?"},
             strategy = "rpg vendor",
             tooltip = "Talk to vendors",
             index = 2
         },
         ["rpg explore"] = {
-            icon = "follow_master",
-            command = {[0] = "nc ~rpg explore,?"},
+            icon = "rpg_explore",
+            command = {[0] = "#a nc ~rpg explore,?"},
             strategy = "rpg explore",
             tooltip = "Talk to inns, flightmasters",
             index = 3
         },
         ["rpg maintenance"] = {
-            icon = "ll_disenchant",
-            command = {[0] = "nc ~rpg maintenance,?"},
+            icon = "rpg_maintenance",
+            command = {[0] = "#a nc ~rpg maintenance,?"},
             strategy = "rpg maintenance",
             tooltip = "Talk to armorers, trainers",
             index = 4
         },
         ["rpg player"] = {
-            icon = "ll_all",
-            command = {[0] = "nc ~rpg player,?"},
+            icon = "rpg_player",
+            command = {[0] = "#a nc ~rpg player,?"},
             strategy = "rpg player",
             tooltip = "Duel/trade players",
             index = 5
         },
         ["rpg craft"] = {
-            icon = "spells",
-            command = {[0] = "nc ~rpg craft,?"},
+            icon = "rpg_craft",
+            command = {[0] = "#a nc ~rpg craft,?"},
             strategy = "rpg craft",
             tooltip = "Craft items, casts spells",
             index = 6
         },
-        ["travel"] = {
-            icon = "flee",
-            command = {[0] = "nc ~travel,?"},
-            strategy = "travel",
-            tooltip = "Travel to distant destinations",
+        ["rpg bg"] = {
+            icon = "rpg_bg",
+            command = {[0] = "#a nc ~rpg bg,?"},
+            strategy = "rpg bg",
+            tooltip = "Queue for bg at battlemasters",
             index = 7
         }			
     })	
@@ -1109,10 +1135,24 @@ function CreateSelectedBotPanel()
         },
         ["reveal"] = {
             icon = "stats",
-            command = {[0] = "nc ~reveal,?"},
+            command = {[0] = "#a nc ~reveal,?"},
             strategy = "reveal",
             tooltip = "Reveal gathering nodes",
             index = 4
+        },
+        ["mount"] = {
+            icon = "mount",
+            command = {[0] = "#a nc ~mount,?"},
+            strategy = "mount",
+            tooltip = "Mount up when possible",
+            index = 5
+        },		
+        ["travel"] = {
+            icon = "travel",
+            command = {[0] = "#a nc ~travel,?"},
+            strategy = "travel",
+            tooltip = "Move to distant locations",
+            index = 6
         }
     })
 
@@ -1120,52 +1160,59 @@ function CreateSelectedBotPanel()
     CreateToolBar(frame, -y, "attack_type", {
         ["tank_aoe"] = {
             icon = "tank_assist",
-            command = {[0] = "nc -dps assist,+tank assist,?", [1] = "co -dps assist,+tank assist,?"},
+            command = {[0] = "#a nc -dps assist,+tank assist,?", [1] = "#a co -dps assist,+tank assist,?"},
             strategy = "tank assist",
             tooltip = "Grab all aggro",
             index = 0
         },
         ["dps_assist"] = {
             icon = "dps_assist",
-            command = {[0] = "nc -tank assist,+dps assist,?", [1] = "co -tank assist,+dps assist,?"},
+            command = {[0] = "#a nc -tank assist,+dps assist,?", [1] = "#a co -tank assist,+dps assist,?"},
             strategy = "dps assist",
             tooltip = "Assist others",
             index = 1
         },
         ["close"] = {
             icon = "close",
-            command = {[0] = "co ~close,?"},
+            command = {[0] = "#a co ~close,?"},
             strategy = "close",
             tooltip = "Melee combat",
             index = 2
         },
         ["ranged"] = {
             icon = "ranged",
-            command = {[0] = "co ~ranged,?"},
+            command = {[0] = "#a co ~ranged,?"},
             strategy = "ranged",
             tooltip = "Ranged combat",
             index = 3
         },
         ["threat"] = {
             icon = "threat",
-            command = {[0] = "co ~threat,?"},
+            command = {[0] = "#a co ~threat,?"},
             strategy = "threat",
             tooltip = "Keep threat level low",
             index = 4
         },
 		["wait_for_attack"] = {
             icon = "wait_for_attack",
-            command = {[0] = "co ~wait for attack,?"},
+            command = {[0] = "#a co ~wait for attack,?"},
             strategy = "wait for attack",
             tooltip = "Wait X seconds before attacking. To change the amount of seconds use 'wait for attack time X'",
             index = 5
         },
 		["pull"] = {
-            icon = "ranged",
-            command = {[0] = "co ~pull,?"},
+            icon = "pull",
+            command = {[0] = "#a co ~pull,?"},
             strategy = "pull",
             tooltip = "Set this bot to pull using the 'pull command'. Recommended to only have one bot with pull enabled.",
             index = 6
+        },
+		["pull back"] = {
+            icon = "pull_back",
+            command = {[0] = "#a co ~pull back,?"},
+            strategy = "pull back",
+            tooltip = "Pull back monsters back to the location where the 'pull command' was given.",
+            index = 7
         }
     })
 
@@ -1185,42 +1232,42 @@ function CreateSelectedBotPanel()
     CreateToolBar(frame, -y, "CLASS_DRUID", {
         ["bear"] = {
             icon = "bear",
-            command = {[0] = "co +bear,+pull,?"},
+            command = {[0] = "#a co +bear,+pull,?"},
             strategy = "bear",
             tooltip = "Use bear form",
             index = 0
         },
         ["cat"] = {
             icon = "cat",
-            command = {[0] = "co +cat,-pull,?"},
+            command = {[0] = "#a co +cat,-pull,?"},
             strategy = "cat",
             tooltip = "Use cat form",
             index = 1
         },
         ["caster"] = {
             icon = "caster",
-            command = {[0] = "co +caster,-pull,?"},
+            command = {[0] = "#a co +caster,-pull,?"},
             strategy = "caster",
             tooltip = "Use caster form",
             index = 2
         },
         ["heal"] = {
             icon = "heal",
-            command = {[0] = "co +heal,-pull,?"},
+            command = {[0] = "#a co +heal,-pull,?"},
             strategy = "heal",
             tooltip = "Healer mode",
             index = 3
         },
         ["cure"] = {
             icon = "cure",
-            command = {[0] = "co ~cure,?", [1] = "nc ~cure,?"},
+            command = {[0] = "#a co ~cure,?", [1] = "#a nc ~cure,?"},
             strategy = "cure",
             tooltip = "Cure (poison, disease, etc.)",
             index = 4
         },
         ["melee"] = {
             icon = "dps",
-            command = {[0] = "co ~melee,?"},
+            command = {[0] = "#a co ~melee,?"},
             strategy = "melee",
             tooltip = "Melee",
             index = 5
@@ -1229,35 +1276,35 @@ function CreateSelectedBotPanel()
     CreateToolBar(frame, -y, "CLASS_HUNTER", {
         ["dps"] = {
             icon = "dps",
-            command = {[0] = "co +dps,?"},
+            command = {[0] = "#a co +dps,?"},
             strategy = "dps",
             tooltip = "DPS mode",
             index = 0
         },
         ["aoe"] = {
             icon = "aoe",
-            command = {[0] = "co ~aoe,?"},
+            command = {[0] = "#a co ~aoe,?"},
             strategy = "aoe",
             tooltip = "Use AOE abilities",
             index = 1
         },
         ["bspeed"] = {
             icon = "bspeed",
-            command = {[0] = "co ~bspeed,?", [1] = "nc ~bspeed,?"},
+            command = {[0] = "#a co ~bspeed,?", [1] = "#a nc ~bspeed,?"},
             strategy = "bspeed",
             tooltip = "Buff movement speed",
             index = 2
         },
         ["bdps"] = {
             icon = "bdps",
-            command = {[0] = "co ~bdps,?", [1] = "nc ~bdps,?"},
+            command = {[0] = "#a co ~bdps,?", [1] = "#a nc ~bdps,?"},
             strategy = "bdps",
             tooltip = "Buff DPS",
             index = 3
         },
         ["pet"] = {
             icon = "pet",
-            command = {[0] = "co ~pet,?", [1] = "nc ~pet,?"},
+            command = {[0] = "#a co ~pet,?", [1] = "#a nc ~pet,?"},
             strategy = "pet",
             tooltip = "Use pet",
             index = 4
@@ -1266,56 +1313,56 @@ function CreateSelectedBotPanel()
     CreateToolBar(frame, -y, "CLASS_MAGE", {
         ["arcane"] = {
             icon = "arcane",
-            command = {[0] = "co +arcane,?"},
+            command = {[0] = "#a co +arcane,?"},
             strategy = "arcane",
             tooltip = "Use arcane spells",
             index = 0
         },
         ["fire"] = {
             icon = "fire",
-            command = {[0] = "co +fire,?"},
+            command = {[0] = "#a co +fire,?"},
             strategy = "fire",
             tooltip = "Use fire spells",
             index = 1
         },
         ["fire_aoe"] = {
             icon = "fire_aoe",
-            command = {[0] = "co ~fire aoe,?"},
+            command = {[0] = "#a co ~fire aoe,?"},
             strategy = "fire aoe",
             tooltip = "Use fire AOE abilities",
             index = 2
         },
         ["frost"] = {
             icon = "frost",
-            command = {[0] = "co +frost,?"},
+            command = {[0] = "#a co +frost,?"},
             strategy = "frost",
             tooltip = "Use frost spells",
             index = 3
         },
         ["frost_aoe"] = {
             icon = "frost_aoe",
-            command = {[0] = "co ~frost aoe,?"},
+            command = {[0] = "#a co ~frost aoe,?"},
             strategy = "frost aoe",
             tooltip = "Use frost AOE abilities",
             index = 4
         },
         ["bmana"] = {
             icon = "bmana",
-            command = {[0] = "co ~bmana,?", [1] = "nc ~bmana,?"},
+            command = {[0] = "#a co ~bmana,?", [1] = "#a nc ~bmana,?"},
             strategy = "bmana",
             tooltip = "Buff mana regen",
             index = 5
         },
         ["bdps"] = {
             icon = "bdps",
-            command = {[0] = "co ~bdps,?", [1] = "nc ~bdps,?"},
+            command = {[0] = "#a co ~bdps,?", [1] = "#a nc ~bdps,?"},
             strategy = "bdps",
             tooltip = "Buff DPS",
             index = 6
         },
         ["cure"] = {
             icon = "cure",
-            command = {[0] = "co ~cure,?", [1] = "nc ~cure,?"},
+            command = {[0] = "#a co ~cure,?", [1] = "#a nc ~cure,?"},
             strategy = "cure",
             tooltip = "Cure (poison, disease, etc.)",
             index = 7
@@ -1324,35 +1371,35 @@ function CreateSelectedBotPanel()
     CreateToolBar(frame, -y, "CLASS_PALADIN", {
         ["dps"] = {
             icon = "dps",
-            command = {[0] = "co +dps,?"},
+            command = {[0] = "#a co +dps,?"},
             strategy = "dps",
             tooltip = "DPS mode",
             index = 0
         },
         ["tank"] = {
             icon = "tank",
-            command = {[0] = "co +tank,?"},
+            command = {[0] = "#a co +tank,?"},
             strategy = "tank",
             tooltip = "Tank mode",
             index = 1
         },
         ["heal"] = {
             icon = "heal",
-            command = {[0] = "co +heal,?"},
+            command = {[0] = "#a co +heal,?"},
             strategy = "heal",
             tooltip = "Healer mode",
             index = 2
         },
         ["cure"] = {
             icon = "cure",
-            command = {[0] = "co ~cure,?", [1] = "nc ~cure,?"},
+            command = {[0] = "#a co ~cure,?", [1] = "#a nc ~cure,?"},
             strategy = "cure",
             tooltip = "Cure (poison, disease, etc.)",
             index = 3
         },
         ["bthreat"] = {
             icon = "bthreat",
-            command = {[0] = "nc ~bthreat,?"},
+            command = {[0] = "#a nc ~bthreat,?"},
             strategy = "bthreat",
             tooltip = "Increase threat generation",
             index = 4
@@ -1361,49 +1408,49 @@ function CreateSelectedBotPanel()
     CreateToolBar(frame, -y, "CLASS_PRIEST", {
         ["heal"] = {
             icon = "heal",
-            command = {[0] = "co +heal,?"},
+            command = {[0] = "#a co +heal,?"},
             strategy = "heal",
             tooltip = "Healer mode",
             index = 0
         },
         ["holy"] = {
             icon = "holy",
-            command = {[0] = "co +holy,?"},
+            command = {[0] = "#a co +holy,?"},
             strategy = "holy",
             tooltip = "Use holy spells",
             index = 1
         },
         ["shadow"] = {
             icon = "shadow",
-            command = {[0] = "co +shadow,?"},
+            command = {[0] = "#a co +shadow,?"},
             strategy = "shadow",
             tooltip = "Dps mode: shadow",
             index = 2
         },
         ["shadow_aoe"] = {
             icon = "shadow_aoe",
-            command = {[0] = "co ~shadow aoe,?"},
+            command = {[0] = "#a co ~shadow aoe,?"},
             strategy = "shadow aoe",
             tooltip = "Use shadow AOE abilities",
             index = 3
         },
         ["shadow_debuff"] = {
             icon = "shadow_debuff",
-            command = {[0] = "co ~shadow debuff,?"},
+            command = {[0] = "#a co ~shadow debuff,?"},
             strategy = "shadow debuff",
             tooltip = "Use shadow debuffs",
             index = 4
         },
         ["cure"] = {
             icon = "cure",
-            command = {[0] = "co ~cure,?", [1] = "nc ~cure,?"},
+            command = {[0] = "#a co ~cure,?", [1] = "#a nc ~cure,?"},
             strategy = "cure",
             tooltip = "Cure (poison, disease, etc.)",
             index = 5
         },
         ["rshadow"] = {
             icon = "rshadow",
-            command = {[0] = "co ~rshadow,?", [1] = "nc ~rshadow,?"},
+            command = {[0] = "#a co ~rshadow,?", [1] = "#a nc ~rshadow,?"},
             strategy = "rshadow",
             tooltip = "Provide shadow resistance",
             index = 6
@@ -1412,14 +1459,14 @@ function CreateSelectedBotPanel()
     CreateToolBar(frame, -y, "CLASS_ROGUE", {
         ["dps"] = {
             icon = "dps",
-            command = {[0] = "co +dps,?"},
+            command = {[0] = "#a co +dps,?"},
             strategy = "dps",
             tooltip = "DPS mode",
             index = 0
         },
         ["aoe"] = {
             icon = "aoe",
-            command = {[0] = "co ~aoe,?"},
+            command = {[0] = "#a co ~aoe,?"},
             strategy = "aoe",
             tooltip = "Use AOE abilities",
             index = 1
@@ -1428,63 +1475,63 @@ function CreateSelectedBotPanel()
     CreateToolBar(frame, -y, "CLASS_SHAMAN", {
         ["caster"] = {
             icon = "caster",
-            command = {[0] = "co +caster,?"},
+            command = {[0] = "#a co +caster,?"},
             strategy = "caster",
             tooltip = "Caster mode",
             index = 0
         },
         ["caster_aoe"] = {
             icon = "caster_aoe",
-            command = {[0] = "co ~caster aoe,?"},
+            command = {[0] = "#a co ~caster aoe,?"},
             strategy = "caster aoe",
             tooltip = "Use caster AOE abilities",
             index = 1
         },
         ["heal"] = {
             icon = "heal",
-            command = {[0] = "co +heal,+threat,?"},
+            command = {[0] = "#a co +heal,+threat,?"},
             strategy = "heal",
             tooltip = "Healer mode",
             index = 2
         },
         ["melee"] = {
             icon = "dps",
-            command = {[0] = "co +melee,?"},
+            command = {[0] = "#a co +melee,?"},
             strategy = "melee",
             tooltip = "Melee mode",
             index = 3
         },
         ["melee_aoe"] = {
             icon = "aoe",
-            command = {[0] = "co ~melee aoe,?"},
+            command = {[0] = "#a co ~melee aoe,?"},
             strategy = "melee aoe",
             tooltip = "Use melee AOE abilities",
             index = 4
         },
         ["totems"] = {
             icon = "totems",
-            command = {[0] = "co ~totems,?"},
+            command = {[0] = "#a co ~totems,?"},
             strategy = "totems",
             tooltip = "Use totems",
             index = 5
         },
         ["bmana"] = {
             icon = "bmana",
-            command = {[0] = "co ~bmana,?", [1] = "nc ~bmana,?"},
+            command = {[0] = "#a co ~bmana,?", [1] = "#a nc ~bmana,?"},
             strategy = "bmana",
             tooltip = "Buff mana regen",
             index = 6
         },
         ["bdps"] = {
             icon = "bdps",
-            command = {[0] = "co ~bdps,?", [1] = "nc ~bdps,?"},
+            command = {[0] = "#a co ~bdps,?", [1] = "#a nc ~bdps,?"},
             strategy = "bdps",
             tooltip = "Buff DPS",
             index = 7
         },
         ["cure"] = {
             icon = "cure",
-            command = {[0] = "co ~cure,?", [1] = "nc ~cure,?"},
+            command = {[0] = "#a co ~cure,?", [1] = "#a nc ~cure,?"},
             strategy = "cure",
             tooltip = "Cure (poison, disease, etc.)",
             index = 8
@@ -1493,35 +1540,35 @@ function CreateSelectedBotPanel()
     CreateToolBar(frame, -y, "CLASS_WARLOCK", {
         ["dps"] = {
             icon = "dps",
-            command = {[0] = "co +dps,?"},
+            command = {[0] = "#a co +dps,?"},
             strategy = "dps",
             tooltip = "DPS mode",
             index = 0
         },
         ["dps_debuff"] = {
             icon = "dps_debuff",
-            command = {[0] = "co ~dps debuff,?"},
+            command = {[0] = "#a co ~dps debuff,?"},
             strategy = "dps debuff",
             tooltip = "Use DPS debuffs",
             index = 1
         },
         ["caster_aoe"] = {
             icon = "caster_aoe",
-            command = {[0] = "co ~aoe,?"},
+            command = {[0] = "#a co ~aoe,?"},
             strategy = "aoe",
             tooltip = "Use AOE abilities",
             index = 2
         },
         ["tank"] = {
             icon = "tank",
-            command = {[0] = "co +tank,?"},
+            command = {[0] = "#a co +tank,?"},
             strategy = "tank",
             tooltip = "Summon tanky demons",
             index = 3
         },
         ["pet"] = {
             icon = "pet",
-            command = {[0] = "co ~pet,?", [1] = "nc ~pet,?"},
+            command = {[0] = "#a co ~pet,?", [1] = "#a nc ~pet,?"},
             strategy = "pet",
             tooltip = "Use pet",
             index = 4
@@ -1530,28 +1577,28 @@ function CreateSelectedBotPanel()
     CreateToolBar(frame, -y, "CLASS_WARRIOR", {
         ["arms"] = {
             icon = "dps",
-            command = {[0] = "co +arms,+dps assist,-pull,?", [1] = "nc +dps assist,?"},
+            command = {[0] = "#a co +arms,+dps assist,-pull,?", [1] = "#a nc +dps assist,?"},
             strategy = "arms",
             tooltip = "Arms rotation",
             index = 0
         },
         ["fury"] = {
             icon = "grind",
-            command = {[0] = "co +fury,+dps assist,-pull,?", [1] = "nc +dps assist,?"},
+            command = {[0] = "#a co +fury,+dps assist,-pull,?", [1] = "#a nc +dps assist,?"},
             strategy = "fury",
             tooltip = "Fury rotation",
             index = 1
         },
         ["tank"] = {
             icon = "tank",
-            command = {[0] = "co +tank,+tank assist,+pull,?", [1] = "nc +tank assist,?"},
+            command = {[0] = "#a co +tank,+tank assist,+pull,?", [1] = "#a nc +tank assist,?"},
             strategy = "tank",
             tooltip = "Tank rotation",
             index = 2
         },
         ["aoe"] = {
             icon = "warrior_aoe",
-            command = {[0] = "co ~aoe,?"},
+            command = {[0] = "#a co ~aoe,?"},
             strategy = "aoe",
             tooltip = "Use AOE abilities",
             index = 3
@@ -1562,28 +1609,28 @@ function CreateSelectedBotPanel()
     CreateToolBar(frame, -y, "CLASS_PALADIN_BUFF", {
         ["bmana"] = {
             icon = "bmana",
-            command = {[0] = "co +bmana,?", [1] = "nc +bmana,?"},
+            command = {[0] = "#a co +bmana,?", [1] = "#a nc +bmana,?"},
             strategy = "bmana",
             tooltip = "Buff mana regen",
             index = 0
         },
         ["bhealth"] = {
             icon = "bhealth",
-            command = {[0] = "co +bhealth,?", [1] = "nc +bhealth,?"},
+            command = {[0] = "#a co +bhealth,?", [1] = "#a nc +bhealth,?"},
             strategy = "bhealth",
             tooltip = "Buff health regen",
             index = 1
         },
         ["bdps"] = {
             icon = "bdps",
-            command = {[0] = "co +bdps,?", [1] = "nc +bdps,?"},
+            command = {[0] = "#a co +bdps,?", [1] = "#a nc +bdps,?"},
             strategy = "bdps",
             tooltip = "Buff melee DPS",
             index = 2
         },
         ["bstats"] = {
             icon = "holy",
-            command = {[0] = "co +bstats,?", [1] = "nc +bstats,?"},
+            command = {[0] = "#a co +bstats,?", [1] = "#a nc +bstats,?"},
             strategy = "bstats",
             tooltip = "Buff stats",
             index = 3
@@ -1594,35 +1641,35 @@ function CreateSelectedBotPanel()
     CreateToolBar(frame, -y, "CLASS_PALADIN_AURA", {
         ["baoe"] = {
             icon = "aoe",
-            command = {[0] = "co +baoe,?", [1] = "nc +baoe,?"},
+            command = {[0] = "#a co +baoe,?", [1] = "#a nc +baoe,?"},
             strategy = "baoe",
             tooltip = "Retribution aura",
             index = 0
         },
         ["rfire"] = {
             icon = "fire",
-            command = {[0] = "co +rfire,?", [1] = "nc +rfire,?"},
+            command = {[0] = "#a co +rfire,?", [1] = "#a nc +rfire,?"},
             strategy = "rfire",
             tooltip = "Fire resistance aura",
             index = 1
         },
         ["rfrost"] = {
             icon = "frost",
-            command = {[0] = "co +rfrost,?", [1] = "nc +rfrost,?"},
+            command = {[0] = "#a co +rfrost,?", [1] = "#a nc +rfrost,?"},
             strategy = "rfrost",
             tooltip = "Frost resistance aura",
             index = 2
         },
         ["rshadow"] = {
             icon = "rshadow",
-            command = {[0] = "co +rshadow,?", [1] = "nc +rshadow,?"},
+            command = {[0] = "#a co +rshadow,?", [1] = "#a nc +rshadow,?"},
             strategy = "rshadow",
             tooltip = "Shadow resistance aura",
             index = 3
         },
         ["barmor"] = {
             icon = "barmor",
-            command = {[0] = "co +barmor,?", [1] = "nc +barmor,?"},
+            command = {[0] = "#a co +barmor,?", [1] = "#a nc +barmor,?"},
             strategy = "barmor",
             tooltip = "Devotion aura",
             index = 4
@@ -1774,7 +1821,7 @@ function QuerySelectedBot(name)
     wait(0.1, function() SendBotCommand("#a formation ?"..CommandSeparator.."#a stance ?"..CommandSeparator.."#a ll ?"..CommandSeparator.."#a co ?"..CommandSeparator.."#a nc ?"..CommandSeparator.."#a save mana ?"..CommandSeparator.."#a rti ?"..CommandSeparator.."#a react ?", "WHISPER", nil, name) end)
 end
 
-Mangosbot_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2, arg3, arg4)
+Mangosbot_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2, arg3, arg4)		
     if (event == "PLAYER_TARGET_CHANGED") then
         local name = GetUnitName("target")
         local self = GetUnitName("player")
@@ -1790,9 +1837,9 @@ Mangosbot_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2, arg3
 		LastBot = name
     end
 
-    if (event == "CHAT_MSG_SYSTEM") then
+    if (event == "CHAT_MSG_SYSTEM" or event == "GROUP_ROSTER_UPDATE") then
         local message = arg1
-        if (OnSystemMessage(message)) then
+        if (OnSystemMessage(message) or (event == "GROUP_ROSTER_UPDATE" and BotRoster:IsVisible())) then
             if (BotRoster.ShowRequest==true) then
                 BotRoster:Show()
                 BotRoster.ShowRequest = false
@@ -1834,11 +1881,13 @@ Mangosbot_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2, arg3
                     end
                 end)
 
+				if (bot["class"] ~= nil) then
                 local filename = "Interface\\Addons\\Mangosbot\\Images\\cls_" .. string.lower(bot["class"]) ..".tga"
                 item.cls.texture:SetTexture(filename)
 
                 local color = RAID_CLASS_COLORS[string.upper(bot["class"])]
                 item.text:SetTextColor(color.r, color.g, color.b, 1.0)
+				end	
 
                 item:SetPoint("TOPLEFT", BotRoster, "TOPLEFT", x, -y)
 
@@ -1887,8 +1936,8 @@ Mangosbot_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2, arg3
                 end)
                 inviteBtn["key"] = key
                 inviteBtn:SetScript("OnClick", function()
-                    -- InviteByName(inviteBtn["key"])
                     InviteUnit(inviteBtn["key"])
+                    --InviteByName(inviteBtn["key"])
                 end)
                 leaveBtn["key"] = key
                 leaveBtn:SetScript("OnClick", function()
@@ -1968,7 +2017,8 @@ Mangosbot_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2, arg3
                 local timeout = 0.1
                 for key,bot in pairs(botTable) do
                     wait(timeout, function(key)
-                        InviteByName(key)
+                        --InviteByName(key)
+						InviteUnit(key)
                     end, key)
                     timeout = timeout + 0.1
                 end
@@ -1991,6 +2041,24 @@ Mangosbot_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2, arg3
                     timeout = timeout + 0.1
                 end
             end)
+            
+			local summonAllBtn = tb.buttons["summon_all"]
+            summonAllBtn:SetPoint("TOPLEFT", tb, "TOPLEFT", x, 0)
+            if (not allBotsLoggedOut) then
+                summonAllBtn:Show()
+                x = x + 16
+            else
+                summonAllBtn:Hide()
+            end
+					
+            summonAllBtn["key"] = key
+            summonAllBtn:SetScript("OnClick", function()
+                local timeout = 0.1
+                for key,bot in pairs(botTable) do
+                    wait(timeout, function(key) SendBotCommand("summon", "WHISPER", nil, key) end, key)
+                    timeout = timeout + 0.1
+                end
+            end)				
             
             local formationToolBar = BotRoster.toolbar["group_formation"]
             if (atLeastOneBotInParty) then
@@ -2047,7 +2115,10 @@ Mangosbot_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2, arg3
         --print(event.." 1 "..arg1.." 2 "..arg2.." 3 "..arg3.." 4 "..arg4)
         local message = arg1
         local sender = arg2
-        if (event == "CHAT_MSG_ADDON") then sender = arg4 end
+        if (event == "CHAT_MSG_ADDON") then 
+			message = arg2 
+			sender = arg4 
+		end
 
         OnWhisper(message, sender)
         
@@ -2090,9 +2161,7 @@ Mangosbot_EventFrame:SetScript("OnEvent", function(self, event, arg1, arg2, arg3
             return
         end
         local selected = GetUnitName("target")
-        if (CurrentBot ~= nil) then 
-            selected = CurrentBot
-        end
+        if (CurrentBot ~= nil) then selected = CurrentBot end
         if (sender == selected) then
             SelectedBotPanel:Show()
 
@@ -2266,7 +2335,7 @@ function OnWhisper(message, sender)
     if (botTable[sender] == nil) then
         botTable[sender] = {}
     end
-	
+
     local type = "co"
 	local validStrategy = false
 	local bot = botTable[sender]
@@ -2285,8 +2354,6 @@ function OnWhisper(message, sender)
 		trm = 21
 	end
 	
-	bot["role"] = "dps"
-    
     if (validStrategy) then
 		local list = {}
 		local role = "dps"
@@ -2330,6 +2397,7 @@ function OnWhisper(message, sender)
 end
 
 function OnSystemMessage(message)
+	if(message == nil) then return false end
     if (string.find(message, 'Bot roster: ') == 1) then
         botTable = {}
         local text = string.sub(message, 13)
