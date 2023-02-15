@@ -1841,7 +1841,7 @@ Mangosbot_EventFrame:SetScript("OnEvent", function(self)
 
     if (event == "CHAT_MSG_SYSTEM" or event == "PARTY_MEMBERS_CHANGED") then
         local message = arg1
-        if (OnSystemMessage(message) or (event == "PARTY_MEMBERS_CHANGED") and BotRoster:IsVisible())) then
+        if (OnSystemMessage(message) or (event == "PARTY_MEMBERS_CHANGED" and BotRoster:IsVisible())) then
             if (BotRoster.ShowRequest) then
                 BotRoster:Show()
                 BotRoster.ShowRequest = false
