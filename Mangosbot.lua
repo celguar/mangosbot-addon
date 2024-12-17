@@ -2272,6 +2272,13 @@ function CreateSelectedBotPanel()
             strategy = "totem fire searing",
             tooltip = "Searing totem (fire)",
             index = 4
+        },
+		["wrath"] = {
+            icon = "totems",
+            command = {[0] = "#a co +totem fire wrath,?", [1] = "#a nc +totem fire wrath,?"},
+            strategy = "totem fire wrath",
+            tooltip = "Totem of Wrath (fire)",
+            index = 5
         }
 	})
 	CreateToolBar(frame, -y, "CLASS_ROGUE_POISON_OFF", {
